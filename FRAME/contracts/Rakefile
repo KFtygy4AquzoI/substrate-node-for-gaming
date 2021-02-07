@@ -1,0 +1,13 @@
+def monkey
+	"../monkey"
+end
+import "#{monkey}/rake/cargo_prelude.rake"
+
+task :install_cargo_contract do
+	cargo_install "canvas-node --git https://github.com/paritytech/canvas-node.git --tag v0.1.4 --force --locked"
+	cargo_install "cargo-contract --vers 0.8.0 --force --locked"
+end
+
+task :cargo_contract_new do
+	cargo_contract_new ENV['NAME']
+end
