@@ -11,27 +11,21 @@ This project contains some configuration files to help get started :hammer_and_w
 Follow the [Rust setup instructions](./doc/rust-setup.md) before using the included Makefile to
 build the Node Template.
 
-### Makefile
+### Rakefile
 
-This project uses a [Makefile](Makefile) to document helpful commands and make it easier to execute
-them. Get started by running these [`make`](https://www.gnu.org/software/make/manual/make.html)
+This project uses a [Rakefile](Rakefile) to document helpful commands and make it easier to execute
+them. Get started by running these [`rake`](https://ruby.github.io/rake/)
 targets:
 
-1. `make init` - Run the [init script](scripts/init.sh) to configure the Rust toolchain for
-   [WebAssembly compilation](https://substrate.dev/docs/en/knowledgebase/getting-started/#webassembly-compilation).
-1. `make run` - Build and launch this project in development mode.
-
-The init script and Makefile both specify the version of the
-[Rust nightly compiler](https://substrate.dev/docs/en/knowledgebase/getting-started/#rust-nightly-toolchain)
-that this project depends on.
+1. `rake run` - Build and launch this project in development mode.
 
 ### Build
 
-The `make run` command will perform an initial build. Use the following command to build the node
+The `rake run` command will perform an initial build. Use the following command to build the node
 without launching it:
 
 ```sh
-make build
+rake build
 ```
 
 ### Embedded Docs
@@ -45,7 +39,7 @@ subcommands:
 
 ## Run
 
-The `make run` command will launch a temporary node and its state will be discarded after you
+The `rake run` command will launch a temporary node and its state will be discarded after you
 terminate the process. After the project has been built, there are other ways to launch the node.
 
 ### Single-Node Development Chain
