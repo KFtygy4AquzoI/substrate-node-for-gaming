@@ -1,11 +1,7 @@
-import "#{monkey}/rake/prelude.rake"
+import "#{monkey}/rake/cargo_prelude.rake"
 
 def release_flag
-	'--release'
-end
-
-def cargo cmd
-        nix "cargo #{cmd}"
+        '--release'
 end
 
 def cargo_skip cmd

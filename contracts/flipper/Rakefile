@@ -1,0 +1,4 @@
+def monkey
+	"../../monkey"
+end
+import "#{monkey}/rake/ink_contract.rake"
