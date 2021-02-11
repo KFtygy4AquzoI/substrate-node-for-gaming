@@ -1,4 +1,4 @@
-import "#{monkey}/rake/prelude.rake"
+import "#{TOP}/monkey/rake/prelude.rake"
 
 def cargo cmd
         nix "cargo #{cmd}"
