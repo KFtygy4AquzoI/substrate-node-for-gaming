@@ -2,6 +2,9 @@
 
 let
 
+  preset = import sources.nixpkgs { config.android_sdk.accept_license = true;};
+  android = preset.callPackage ./android.nix { };
+
   mozillaOverlay =
     import (builtins.fetchGit {
       url = "https://github.com/mozilla/nixpkgs-mozilla.git";
@@ -27,6 +30,12 @@ with nixpkgs; pkgs.mkShell {
     pkg-config
     rust-nightly
 
+    preset.flutter
+    preset.jdk
+    preset.niv
+    android.platform-tools
+
+
   ] ++ stdenv.lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.Security
   ];
@@ -34,6 +43,10 @@ with nixpkgs; pkgs.mkShell {
   LIBCLANG_PATH = "${llvmPackages.libclang}/lib";
   PROTOC = "${protobuf}/bin/protoc";
   ROCKSDB_LIB_DIR = "${rocksdb}/lib";
+
+  ANDROID_HOME = "${android.androidsdk}/libexec/android-sdk";
+  JAVA_HOME = preset.jdk;
+  ANDROID_AVD_HOME = (toString ./.) + "/.android/avd";
 
 }
 
