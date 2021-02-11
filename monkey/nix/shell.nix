@@ -1,4 +1,9 @@
+{ sources ? import ./sources.nix }:
+
 let
+
+  preset = import sources.nixpkgs { config.android_sdk.accept_license = true;};
+  android = preset.callPackage ./android.nix { };
 
   mozillaOverlay =
     import (builtins.fetchGit {
@@ -13,17 +18,6 @@ let
     extensions = ["rust-src"];
   });
 
-  flutterPkgs =
-    import (builtins.fetchGit {
-      url = "https://github.com/babariviere/nixpkgs.git";
-      rev = "fc592a52cacfbf5f22e6479a22263983f5346ea6";
-  });
-
-  dartPkgs =
-    import (builtins.fetchGit {
-      url = "https://github.com/GRBurst/nixpkgs.git";
-      rev = "47639c945ea305be65abce5649f61529e5b6f011";
-  });
 
 in
 with nixpkgs; pkgs.mkShell {
@@ -36,9 +30,9 @@ with nixpkgs; pkgs.mkShell {
     pkg-config
     rust-nightly
 
-    flutterPkgs.flutter
-    dartPkgs.dart
-    android-studio
+    preset.flutter
+    preset.jdk
+
 
   ] ++ stdenv.lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.Security
