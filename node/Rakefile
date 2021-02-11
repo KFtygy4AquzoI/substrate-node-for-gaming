@@ -1,4 +1,4 @@
 def monkey
-	"./monkey"
+	"../monkey"
 end
 import "#{monkey}/rake/cargo.rake"
