@@ -1,5 +1,5 @@
 def shellNix
-        "#{monkey}/nix/shell.nix"
+        "#{TOP}/monkey/nix/shell.nix"
 end
 
 def nix cmd
