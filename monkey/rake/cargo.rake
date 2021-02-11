@@ -1,11 +1,11 @@
-import "#{monkey}/rake/cargo_prelude.rake"
+import "#{TOP}/monkey/rake/cargo_prelude.rake"
 
 def release_flag
         '--release'
 end
 
 def cargo_skip cmd
-        nix "SKIP_WASM_BUILD=1 cargo #{cmd}"
+        make_cargo('SKIP_WASM_BUILD=1', cmd)
 end
 
 task :default do
