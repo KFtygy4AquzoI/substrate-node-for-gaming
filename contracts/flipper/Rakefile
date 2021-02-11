@@ -1,4 +1,1 @@
-def monkey
-	"../../monkey"
-end
-import "#{monkey}/rake/ink_contract.rake"
+TOP='../..'; import "#{TOP}/monkey/rake/ink_contract.rake"
