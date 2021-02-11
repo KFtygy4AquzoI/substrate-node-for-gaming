@@ -32,6 +32,8 @@ with nixpkgs; pkgs.mkShell {
 
     preset.flutter
     preset.jdk
+    preset.niv
+    android.platform-tools
 
 
   ] ++ stdenv.lib.optionals stdenv.isDarwin [
@@ -41,5 +43,10 @@ with nixpkgs; pkgs.mkShell {
   LIBCLANG_PATH = "${llvmPackages.libclang}/lib";
   PROTOC = "${protobuf}/bin/protoc";
   ROCKSDB_LIB_DIR = "${rocksdb}/lib";
+
+  ANDROID_HOME = "${android.androidsdk}/libexec/android-sdk";
+  JAVA_HOME = preset.jdk;
+  ANDROID_AVD_HOME = (toString ./.) + "/.android/avd";
+
 }
 
