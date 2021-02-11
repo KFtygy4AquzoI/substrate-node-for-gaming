@@ -1,4 +1,4 @@
-import "#{monkey}/rake/cargo_prelude.rake"
+import "#{TOP}/monkey/rake/cargo_prelude.rake"
 
 task :test do
         cargo "test"
