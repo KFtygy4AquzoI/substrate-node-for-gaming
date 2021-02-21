@@ -1,3 +1,7 @@
+/*
+ * https://github.com/substrate-developer-hub/recipes/blob/master/nodes/hybrid-consensus/src/service.rs
+ */
+
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
 use node_runtime::{self, opaque::Block, RuntimeApi};
@@ -35,16 +39,18 @@ pub fn new_partial(
         sp_consensus::DefaultImportQueue<Block, FullClient>,
         sc_transaction_pool::FullPool<Block, FullClient>,
         (
-            sc_consensus_aura::AuraBlockImport<
+            sc_consensus_pow::PowBlockImport<
                 Block,
-                FullClient,
                 sc_finality_grandpa::GrandpaBlockImport<
                     FullBackend,
                     Block,
                     FullClient,
                     FullSelectChain,
                 >,
-                AuraPair,
+                FullClient,
+                FullSelectChain,
+                bitcoin_pow::Sha3Algorithm<FullClient>,
+                impl sp_consensus::CanAuthorWith<Block>,
             >,
             sc_finality_grandpa::LinkHalf<Block, FullClient, FullSelectChain>,
         ),
@@ -71,32 +77,26 @@ pub fn new_partial(
         &(client.clone() as Arc<_>),
         select_chain.clone(),
     )?;
-
-    let aura_block_import = sc_consensus_aura::AuraBlockImport::<_, _, _, AuraPair>::new(
-        grandpa_block_import.clone(),
-        client.clone(),
-    );
+    let justification_import = grandpa_block_import.clone();
 
     let pow_block_import = sc_consensus_pow::PowBlockImport::new(
         grandpa_block_import.clone(),
         client.clone(),
         bitcoin_pow::Sha3Algorithm::new(client.clone()),
         0, // check inherents starting at block 0
-        Some(select_chain.clone()),
+        select_chain.clone(),
         inherent_data_providers.clone(),
         sp_consensus::AlwaysCanAuthor,
     );
 
-    let import_queue = sc_consensus_aura::import_queue::<_, _, _, AuraPair, _, _>(
-        sc_consensus_aura::slot_duration(&*client)?,
-        aura_block_import.clone(),
-        Some(Box::new(grandpa_block_import.clone())),
+    let import_queue = sc_consensus_pow::import_queue(
+        Box::new(pow_block_import.clone()),
         None,
-        client.clone(),
+        None,
+        bitcoin_pow::Sha3Algorithm::new(client.clone()),
         inherent_data_providers.clone(),
         &task_manager.spawn_handle(),
         config.prometheus_registry(),
-        sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone()),
     )?;
 
     Ok(sc_service::PartialComponents {
@@ -108,7 +108,7 @@ pub fn new_partial(
         select_chain,
         transaction_pool,
         inherent_data_providers,
-        other: (aura_block_import, grandpa_link),
+        other: (pow_block_import, grandpa_link),
     })
 }
 
@@ -123,7 +123,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
         select_chain,
         transaction_pool,
         inherent_data_providers,
-        other: (block_import, grandpa_link),
+        other: (pow_block_import, grandpa_link),
     } = new_partial(&config)?;
 
     let finality_proof_provider =
@@ -200,24 +200,32 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
         let can_author_with =
             sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
 
-        let aura = sc_consensus_aura::start_aura::<_, _, _, _, _, AuraPair, _, _, _>(
-            sc_consensus_aura::slot_duration(&*client)?,
-            client.clone(),
-            select_chain,
-            block_import,
-            proposer,
-            network.clone(),
-            inherent_data_providers.clone(),
-            force_authoring,
-            keystore.clone(),
-            can_author_with,
-        )?;
+        // Parameter details:
+        //   https://substrate.dev/rustdocs/v2.0.1/sc_consensus_pow/fn.start_mining_worker.html
+        // Also refer to kulupu config:
+        //   https://github.com/kulupu/kulupu/blob/master/src/service.rs
+        let (_worker, worker_task) = sc_consensus_pow::start_mining_worker(
+            Box::new(pow_block_import), // block_import: BoxBlockImport
+            client.clone(),             // client: Arc<C>
+            // Choosing not to supply a select_chain means we will use the client's
+            //   possibly-outdated metadata when fetching the block to mine on.
+            select_chain, // select_chain: S
+            //bitcoin_pow::Sha3Algorithm,       // algorithm: Algorithm
+            bitcoin_pow::Sha3Algorithm::new(client.clone()),
+            proposer,                        // env: E
+            network.clone(),                 // sync_oracle: SO
+            None,                            // pre_runtime: Option<Vec<u8>>
+            inherent_data_providers.clone(), // inherent_data_providers: InherentDataProviders
+            // time to wait for a new block before starting to mine a new one
+            Duration::from_secs(10), // timeout: Duration
+            // how long to take to actually build the block (i.e. executing extrinsics)
+            Duration::from_secs(10), // build_time: Duration
+            can_author_with,         // can_author_with: CAW
+        );
 
-        // the AURA authoring task is considered essential, i.e. if it
-        // fails we take down the service with it.
         task_manager
             .spawn_essential_handle()
-            .spawn_blocking("aura", aura);
+            .spawn_blocking("pow", worker_task);
     }
 
     // if the node isn't actively participating in consensus then it doesn't
@@ -272,6 +280,8 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 
 /// Builds a new service for a light client.
 pub fn new_light(config: Configuration) -> Result<TaskManager, ServiceError> {
+    let inherent_data_providers = sp_inherents::InherentDataProviders::new();
+
     let (client, backend, keystore, mut task_manager, on_demand) =
         sc_service::new_light_parts::<Block, RuntimeApi, Executor>(&config)?;
 
@@ -283,6 +293,8 @@ pub fn new_light(config: Configuration) -> Result<TaskManager, ServiceError> {
         on_demand.clone(),
     ));
 
+    let select_chain = sc_consensus::LongestChain::new(backend.clone());
+
     let grandpa_block_import = sc_finality_grandpa::light_block_import(
         client.clone(),
         backend.clone(),
@@ -293,16 +305,24 @@ pub fn new_light(config: Configuration) -> Result<TaskManager, ServiceError> {
     let finality_proof_request_builder =
         finality_proof_import.create_finality_proof_request_builder();
 
-    let import_queue = sc_consensus_aura::import_queue::<_, _, _, AuraPair, _, _>(
-        sc_consensus_aura::slot_duration(&*client)?,
-        grandpa_block_import,
-        None,
-        Some(Box::new(finality_proof_import)),
+    let pow_block_import = sc_consensus_pow::PowBlockImport::new(
+        grandpa_block_import.clone(),
         client.clone(),
-        InherentDataProviders::new(),
+        bitcoin_pow::Sha3Algorithm::new(client.clone()),
+        0, // check inherents starting at block 0
+        select_chain.clone(),
+        inherent_data_providers.clone(),
+        sp_consensus::AlwaysCanAuthor,
+    );
+
+    let import_queue = sc_consensus_pow::import_queue(
+        Box::new(pow_block_import.clone()),
+        None,
+        None,
+        bitcoin_pow::Sha3Algorithm::new(client.clone()),
+        inherent_data_providers.clone(),
         &task_manager.spawn_handle(),
         config.prometheus_registry(),
-        sp_consensus::NeverCanAuthor,
     )?;
 
     let finality_proof_provider =
@@ -318,7 +338,8 @@ pub fn new_light(config: Configuration) -> Result<TaskManager, ServiceError> {
             on_demand: Some(on_demand.clone()),
             block_announce_validator_builder: None,
             finality_proof_request_builder: Some(finality_proof_request_builder),
-            finality_proof_provider: Some(finality_proof_provider),
+            //finality_proof_provider: Some(finality_proof_provider),
+            finality_proof_provider: None,
         })?;
 
     if config.offchain_worker.enabled {
