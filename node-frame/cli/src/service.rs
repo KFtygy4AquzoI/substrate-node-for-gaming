@@ -1,6 +1,6 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
-use node_template_runtime::{self, opaque::Block, RuntimeApi};
+use node_runtime::{self, opaque::Block, RuntimeApi};
 use sc_client_api::{ExecutorProvider, RemoteBackend};
 use sc_executor::native_executor_instance;
 pub use sc_executor::NativeExecutor;
@@ -16,8 +16,8 @@ use std::time::Duration;
 // Our native executor instance.
 native_executor_instance!(
     pub Executor,
-    node_template_runtime::api::dispatch,
-    node_template_runtime::native_version,
+    node_runtime::api::dispatch,
+    node_runtime::native_version,
     frame_benchmarking::benchmarking::HostFunctions,
 );
 
@@ -75,6 +75,16 @@ pub fn new_partial(
     let aura_block_import = sc_consensus_aura::AuraBlockImport::<_, _, _, AuraPair>::new(
         grandpa_block_import.clone(),
         client.clone(),
+    );
+
+    let pow_block_import = sc_consensus_pow::PowBlockImport::new(
+        grandpa_block_import.clone(),
+        client.clone(),
+        bitcoin_pow::Sha3Algorithm::new(client.clone()),
+        0, // check inherents starting at block 0
+        Some(select_chain.clone()),
+        inherent_data_providers.clone(),
+        sp_consensus::AlwaysCanAuthor,
     );
 
     let import_queue = sc_consensus_aura::import_queue::<_, _, _, AuraPair, _, _>(
