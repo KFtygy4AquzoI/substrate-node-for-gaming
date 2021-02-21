@@ -1,9 +1,9 @@
-use node_template_runtime::{
-    AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig,
-    SystemConfig, UtxoConfig, WASM_BINARY,
+use node_runtime::ContractsConfig;
+use node_runtime::{
+    AccountId, BalancesConfig, DifficultyAdjustmentConfig, GenesisConfig, GrandpaConfig, Signature,
+    SudoConfig, SystemConfig, UtxoConfig, WASM_BINARY,
 };
 use sc_service::ChainType;
-use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{IdentifyAccount, Verify};
@@ -32,8 +32,8 @@ where
 }
 
 /// Generate an Aura authority key.
-pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
-    (get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
+pub fn authority_keys_from_seed(s: &str) -> GrandpaId {
+    get_from_seed::<GrandpaId>(s)
 }
 
 pub fn development_config() -> Result<ChainSpec, String> {
@@ -136,11 +136,11 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 /// Configure initial storage state for FRAME modules.
 fn testnet_genesis(
     wasm_binary: &[u8],
-    initial_authorities: Vec<(AuraId, GrandpaId)>,
+    initial_authorities: Vec<GrandpaId>,
     root_key: AccountId,
     endowed_accounts: Vec<AccountId>,
     endowed_utxos: Vec<sr25519::Public>,
-    _enable_println: bool,
+    enable_println: bool,
 ) -> GenesisConfig {
     GenesisConfig {
         frame_system: Some(SystemConfig {
@@ -156,14 +156,8 @@ fn testnet_genesis(
                 .map(|k| (k, 1 << 60))
                 .collect(),
         }),
-        pallet_aura: Some(AuraConfig {
-            authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),
-        }),
         pallet_grandpa: Some(GrandpaConfig {
-            authorities: initial_authorities
-                .iter()
-                .map(|x| (x.1.clone(), 1))
-                .collect(),
+            authorities: initial_authorities.iter().map(|x| (x.clone(), 1)).collect(),
         }),
         pallet_sudo: Some(SudoConfig {
             // Assign network admin rights.
@@ -177,6 +171,15 @@ fn testnet_genesis(
                     pubkey: x.clone().into(),
                 })
                 .collect(),
+        }),
+        pallet_contracts: Some(ContractsConfig {
+            current_schedule: pallet_contracts::Schedule {
+                enable_println,
+                ..Default::default()
+            },
+        }),
+        difficulty: Some(DifficultyAdjustmentConfig {
+            initial_difficulty: 4_000_000.into(),
         }),
     }
 }

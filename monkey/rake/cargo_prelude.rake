@@ -3,7 +3,7 @@ import "#{TOP}/monkey/rake/prelude.rake"
 CARGO_TARGET_DIR = "#{TOP}/monkey/.target"
 
 def make_cargo(preCmd, cmd)
-        nix "CARGO_TARGET_DIR='#{CARGO_TARGET_DIR}' #{preCmd} cargo #{cmd}"
+        nix "CARGO_TARGET_DIR=\\\"`realpath #{CARGO_TARGET_DIR}`\\\" #{preCmd} cargo #{cmd}"
 end
 
 def cargo cmd

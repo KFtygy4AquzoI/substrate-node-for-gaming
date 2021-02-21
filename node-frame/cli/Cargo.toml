@@ -21,10 +21,12 @@ substrate-build-script-utils = '2.0.1'
 [dependencies]
 jsonrpc-core = '15.0.0'
 structopt = '0.3.8'
+pallet-contracts = '2.0.1'
+pallet-contracts-rpc = '0.8.1'
 
 # local dependencies
-pallet-utxo= { path = '../pallets/utxo', version = '2.0.1'}
-node-template-runtime = { path = '../runtime', version = '2.0.1' }
+pallet-utxo = { path = '../pallets/utxo', version = '2.0.1'}
+node-runtime = { path = '../runtime', version = '2.0.1' }
 
 # Substrate dependencies
 frame-benchmarking = '2.0.1'
@@ -34,7 +36,6 @@ sc-basic-authorship = '0.8.1'
 sc-cli = { features = ['wasmtime'], version = '0.8.1' }
 sc-client-api = '2.0.1'
 sc-consensus = '0.8.1'
-sc-consensus-aura = '0.8.1'
 sc-executor = { features = ['wasmtime'], version = '0.8.1' }
 sc-finality-grandpa = '0.8.1'
 sc-rpc = '2.0.1'
@@ -45,7 +46,6 @@ sp-api = '2.0.1'
 sp-block-builder = '2.0.1'
 sp-blockchain = '2.0.1'
 sp-consensus = '0.8.1'
-sp-consensus-aura = '0.8.1'
 sp-core = '2.0.1'
 sp-finality-grandpa = '2.0.1'
 sp-inherents = '2.0.1'
@@ -53,6 +53,14 @@ sp-runtime = '2.0.1'
 sp-transaction-pool = '2.0.1'
 substrate-frame-rpc-system = '2.0.1'
 
+sha3 = "0.8"
+bitcoin-pow = {path = './bitcoin-pow'}
+sc-consensus-pow = '0.8.1'
+sp-consensus-pow = '0.8.1'
+sc-network = '0.8.1'
+parity-scale-codec = '1.3.0'
+sp-timestamp = '2.0.1'
+
 [features]
 default = []
-runtime-benchmarks = ['node-template-runtime/runtime-benchmarks']
+runtime-benchmarks = ['node-runtime/runtime-benchmarks']
