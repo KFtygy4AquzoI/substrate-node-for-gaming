@@ -1,5 +1,5 @@
-use node_template_runtime::ContractsConfig;
-use node_template_runtime::{
+use node_runtime::ContractsConfig;
+use node_runtime::{
     AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig,
     SystemConfig, UtxoConfig, WASM_BINARY,
 };
