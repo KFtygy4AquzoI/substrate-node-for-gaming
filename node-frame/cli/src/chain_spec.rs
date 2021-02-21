@@ -1,6 +1,7 @@
-use node_template_runtime::{
+use node_runtime::ContractsConfig;
+use node_runtime::{
     AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig,
-    SystemConfig, UtxoConfig, WASM_BINARY,
+    SystemConfig, DifficultyAdjustmentConfig, UtxoConfig, WASM_BINARY,
 };
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -140,7 +141,7 @@ fn testnet_genesis(
     root_key: AccountId,
     endowed_accounts: Vec<AccountId>,
     endowed_utxos: Vec<sr25519::Public>,
-    _enable_println: bool,
+    enable_println: bool,
 ) -> GenesisConfig {
     GenesisConfig {
         frame_system: Some(SystemConfig {
@@ -178,5 +179,14 @@ fn testnet_genesis(
                 })
                 .collect(),
         }),
+        pallet_contracts: Some(ContractsConfig {
+            current_schedule: pallet_contracts::Schedule {
+                enable_println,
+                ..Default::default()
+            },
+        }),
+        difficulty: Some(DifficultyAdjustmentConfig {
+                        initial_difficulty: 4_000_000.into(),
+                                }),
     }
 }
