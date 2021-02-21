@@ -141,7 +141,7 @@ fn testnet_genesis(
     root_key: AccountId,
     endowed_accounts: Vec<AccountId>,
     endowed_utxos: Vec<sr25519::Public>,
-    _enable_println: bool,
+    enable_println: bool,
 ) -> GenesisConfig {
     GenesisConfig {
         frame_system: Some(SystemConfig {
