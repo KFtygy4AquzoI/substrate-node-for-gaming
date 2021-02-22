@@ -9,7 +9,6 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 use pallet_grandpa::fg_primitives;
 use pallet_grandpa::{AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use sp_api::impl_runtime_apis;
-use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata, U256};
 use sp_runtime::traits::{
     BlakeTwo256, Block as BlockT, IdentifyAccount, NumberFor, Saturating, Verify,
@@ -92,7 +91,6 @@ pub mod opaque {
 
     impl_opaque_keys! {
         pub struct SessionKeys {
-            pub aura: Aura,
             pub grandpa: Grandpa,
         }
     }
@@ -204,10 +202,6 @@ impl frame_system::Trait for Runtime {
     type SystemWeightInfo = ();
 }
 
-impl pallet_aura::Trait for Runtime {
-    type AuthorityId = AuraId;
-}
-
 impl pallet_grandpa::Trait for Runtime {
     type Event = Event;
     type Call = Call;
@@ -234,7 +228,7 @@ parameter_types! {
 impl pallet_timestamp::Trait for Runtime {
     /// A timestamp: milliseconds since the unix epoch.
     type Moment = u64;
-    type OnTimestampSet = Aura;
+    type OnTimestampSet = ();
     type MinimumPeriod = MinimumPeriod;
     type WeightInfo = ();
 }
@@ -335,7 +329,6 @@ construct_runtime!(
         System: frame_system::{Module, Call, Config, Storage, Event<T>},
         RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
         Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},
-        Aura: pallet_aura::{Module, Config<T>, Inherent},
         Grandpa: pallet_grandpa::{Module, Call, Storage, Config, Event},
         Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
         TransactionPayment: pallet_transaction_payment::{Module, Storage},
@@ -441,16 +434,6 @@ impl_runtime_apis! {
     impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
         fn offchain_worker(header: &<Block as BlockT>::Header) {
             Executive::offchain_worker(header)
-        }
-    }
-
-    impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
-        fn slot_duration() -> u64 {
-            Aura::slot_duration()
-        }
-
-        fn authorities() -> Vec<AuraId> {
-            Aura::authorities()
         }
     }
 
