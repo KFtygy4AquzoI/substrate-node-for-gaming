@@ -5,7 +5,7 @@ let
   mozillaOverlay =
     import (builtins.fetchGit {
       url = "https://github.com/mozilla/nixpkgs-mozilla.git";
-      rev = "18cd4300e9bf61c7b8b372f07af827f6ddc835bb";
+      rev = "57c8084c7ef41366993909c20491e359bbb90f54";
     });
 
   nixpkgs = import <nixpkgs> { overlays = [ mozillaOverlay ]; };

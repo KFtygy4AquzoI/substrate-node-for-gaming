@@ -69,9 +69,9 @@ do
 	newport=`expr $port + 1`
 	rpcport=`expr $wsport + 10`
 	if [ "$num" == "0" ]; then
-		sh -c "$binary --tmp $offchain_flags --$name --port $newport --ws-port $wsport --rpc-port $rpcport --chain $chain 2>&1" | local_id | logger_for_first_node $tmpdir/port_${newport}_name_$name.txt &
+		sh -c "$binary -d db$num $offchain_flags --$name --port $newport --ws-port $wsport --rpc-port $rpcport --chain $chain 2>&1" | local_id | logger_for_first_node $tmpdir/port_${newport}_name_$name.txt &
 	else
-		sh -c "$binary --tmp $offchain_flags --$name --port $newport --ws-port $wsport --rpc-port $rpcport --chain $chain --bootnodes /ip4/127.0.0.1/tcp/$port/p2p/`cat $localid` 2>&1" | local_id > $tmpdir/port_${newport}_name_$name.txt &
+		sh -c "$binary -d db$num $offchain_flags --$name --port $newport --ws-port $wsport --rpc-port $rpcport --chain $chain --bootnodes /ip4/127.0.0.1/tcp/$port/p2p/`cat $localid` 2>&1" | local_id > $tmpdir/port_${newport}_name_$name.txt &
 	fi
 	echo SCRIPT: "Port:" $newport "P2P port:" $port "Name:" $name "WS:" $wsport "RPC:" $rpcport $tmpdir/port_${newport}_name_$name.txt
 	sleep 5
