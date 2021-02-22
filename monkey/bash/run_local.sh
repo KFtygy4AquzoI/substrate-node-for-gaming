@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-binary="./target/debug/node-template"
+binary="./monkey/.target/debug/node-template"
 
 chain="local"
 
@@ -15,7 +15,7 @@ duplicate_log=1
   -w, --disable-offchain-workers     Disable offchain workers
 offchain_flags="--offchain-worker Never"
   -r, --use-release-build            Use release build
-binary="./target/release/node-template"
+binary="./monkey/.target/release/node-template"
   -s, --staging                      Using staging chain spec
 chain="staging"
 EOF
