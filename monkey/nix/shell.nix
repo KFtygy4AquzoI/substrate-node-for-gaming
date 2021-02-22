@@ -27,6 +27,8 @@ with nixpkgs; pkgs.mkShell {
     pkg-config
     rust-nightly
 
+    getopt
+
   ] ++ stdenv.lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.Security
   ];
