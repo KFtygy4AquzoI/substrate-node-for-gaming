@@ -125,42 +125,44 @@ where
 
         Ok(true)
     }
+}
 
-    /*
-    fn mine(
-        &self,
-        _parent: &BlockId<B>,
-        pre_hash: &H256,
-        _pre_digest: Option<&[u8]>,
-        difficulty: Self::Difficulty,
-        round: u32 // The number of nonces to try during this call
-    ) -> Result<Option<RawSeal>, Error<B>> {
-        // Get a randomness source from the environment; fail if one isn't available
-        let mut rng = SmallRng::from_rng(&mut thread_rng())
-            .map_err(|e| Error::Environment(format!("Initialize RNG failed for mining: {:?}", e)))?;
+pub fn mine<B, C>(
+    _parent: &BlockId<B>,
+    pre_hash: &H256,
+    _pre_digest: Option<&[u8]>,
+    difficulty: sp_core::U256,
+    round: u32, // The number of nonces to try during this call
+) -> Result<Option<RawSeal>, Error<B>>
+where
+    B: BlockT<Hash = H256>,
+    C: HeaderBackend<B> + AuxStore + ProvideRuntimeApi<B>,
+    C::Api: DifficultyApi<B, U256>,
+    Sha3Algorithm<C>: PowAlgorithm<B>,
+{
+    // Get a randomness source from the environment; fail if one isn't available
+    let mut rng = SmallRng::from_rng(&mut thread_rng())
+        .map_err(|e| Error::Environment(format!("Initialize RNG failed for mining: {:?}", e)))?;
 
-        // Loop the specified number of times
-        for _ in 0..round {
+    // Loop the specified number of times
+    for _ in 0..round {
+        // Choose a new nonce
+        let nonce = H256::random_using(&mut rng);
 
-            // Choose a new nonce
-            let nonce = H256::random_using(&mut rng);
+        // Calculate the seal
+        let compute = Compute {
+            difficulty,
+            pre_hash: *pre_hash,
+            nonce,
+        };
+        let seal = compute.compute();
 
-            // Calculate the seal
-            let compute = Compute {
-                difficulty,
-                pre_hash: *pre_hash,
-                nonce,
-            };
-            let seal = compute.compute();
-
-            // If we solved the PoW then return, otherwise loop again
-            if hash_meets_difficulty(&seal.work, difficulty) {
-                return Ok(Some(seal.encode()))
-            }
+        // If we solved the PoW then return, otherwise loop again
+        if hash_meets_difficulty(&seal.work, difficulty) {
+            return Ok(Some(seal.encode()));
         }
-
-        // Tried the specified number of rounds and never found a solution
-        Ok(None)
     }
-    */
+
+    // Tried the specified number of rounds and never found a solution
+    Ok(None)
 }

@@ -13,7 +13,9 @@ use sc_finality_grandpa::{
 };
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
 use sp_inherents::InherentDataProviders;
+use sp_runtime::generic::BlockId;
 use std::sync::Arc;
+use std::thread;
 use std::time::Duration;
 
 // Our native executor instance.
@@ -196,14 +198,11 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
             prometheus_registry.as_ref(),
         );
 
-        let can_author_with =
-            sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
-
         // Parameter details:
         //   https://substrate.dev/rustdocs/v2.0.1/sc_consensus_pow/fn.start_mining_worker.html
         // Also refer to kulupu config:
         //   https://github.com/kulupu/kulupu/blob/master/src/service.rs
-        let (_worker, worker_task) = sc_consensus_pow::start_mining_worker(
+        let (worker, worker_task) = sc_consensus_pow::start_mining_worker(
             Box::new(pow_block_import), // block_import: BoxBlockImport
             client.clone(),             // client: Arc<C>
             // Choosing not to supply a select_chain means we will use the client's
@@ -218,13 +217,41 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
             // time to wait for a new block before starting to mine a new one
             Duration::from_secs(10), // timeout: Duration
             // how long to take to actually build the block (i.e. executing extrinsics)
-            Duration::from_secs(10), // build_time: Duration
-            can_author_with,         // can_author_with: CAW
+            Duration::from_secs(10),       // build_time: Duration
+            sp_consensus::AlwaysCanAuthor, // can_author_with: CAW
         );
 
         task_manager
             .spawn_essential_handle()
             .spawn_blocking("pow", worker_task);
+
+        thread::spawn(move || loop {
+            let metadata = worker.lock().metadata();
+            if let Some(metadata) = metadata {
+                match bitcoin_pow::mine::<Block, FullClient>(
+                    &BlockId::Hash(metadata.best_hash),
+                    &metadata.pre_hash,
+                    None,
+                    metadata.difficulty,
+                    99999,
+                ) {
+                    Ok(Some(seal)) => {
+                        let mut worker = worker.lock();
+                        let current_metadata = worker.metadata();
+                        if current_metadata == Some(metadata) {
+                            let _ = worker.submit(seal);
+                        }
+                    }
+                    Ok(None) => (),
+                    Err(err) => {
+                        //warn!("Mining failed: {:?}", err);
+                        ()
+                    }
+                }
+            } else {
+                thread::sleep(Duration::new(1, 0));
+            }
+        });
     }
 
     // if the node isn't actively participating in consensus then it doesn't
