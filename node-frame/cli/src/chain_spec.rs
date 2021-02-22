@@ -179,7 +179,7 @@ fn testnet_genesis(
             },
         }),
         difficulty: Some(DifficultyAdjustmentConfig {
-            initial_difficulty: 4_000_000.into(),
+            initial_difficulty: 4_000_000_0.into(),
         }),
     }
 }
